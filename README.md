@@ -61,13 +61,83 @@ game executable (see the documentation).
 - **Linux:** permission on `/dev/ttyUSB*` (usually the `dialout` group).
 - **Windows:** the FTDI VCP driver, so the interface shows up as a COM port.
 
+## Compiling the helper
+
+The helper is one C file, `addons/opendmx/helper/opendmx_helper.c`. Only the
+macOS (Intel) binary is shipped; build the others on the target machine. Run
+every command from `addons/opendmx/helper`.
+
+### macOS
+
+Needs the Xcode command line tools (`xcode-select --install`) and libusb:
+
+```bash
+brew install libusb
+```
+
+On an Intel Mac:
+
+```bash
+clang -O2 -DUSE_LIBUSB -I/usr/local/include/libusb-1.0 -o ../bin/macos/opendmx_helper opendmx_helper.c /usr/local/lib/libusb-1.0.a -framework IOKit -framework CoreFoundation -framework Security
+```
+
+On an Apple Silicon Mac, Homebrew is in `/opt/homebrew`:
+
+```bash
+clang -O2 -DUSE_LIBUSB -I/opt/homebrew/include/libusb-1.0 -o ../bin/macos/opendmx_helper opendmx_helper.c /opt/homebrew/lib/libusb-1.0.a -framework IOKit -framework CoreFoundation -framework Security
+```
+
+libusb is linked into the helper, so the result has no dependency.
+
+### Linux
+
+Needs a C compiler (`sudo apt install build-essential` on Debian or Ubuntu):
+
+```bash
+cc -O2 -o ../bin/linux/opendmx_helper opendmx_helper.c
+```
+
+This build uses the serial port (`/dev/ttyUSB*`). To add direct USB access
+as well, install `libusb-1.0-0-dev` and `pkg-config`, then:
+
+```bash
+cc -O2 -DUSE_LIBUSB -o ../bin/linux/opendmx_helper opendmx_helper.c $(pkg-config --cflags --libs libusb-1.0)
+```
+
+### Windows
+
+With MinGW-w64 (for example from MSYS2), in its shell:
+
+```bash
+gcc -O2 -o ../bin/windows/opendmx_helper.exe opendmx_helper.c
+```
+
+Or with Visual Studio, in a "x64 Native Tools Command Prompt":
+
+```bash
+cl /O2 /Fe:..\bin\windows\opendmx_helper.exe opendmx_helper.c
+```
+
+The Linux and Windows builds have never been compiled, so expect to fix a
+compile error or two the first time.
+
+### Check the result
+
+```bash
+../bin/macos/opendmx_helper --list
+```
+
+It prints one line per interface found (replace `macos` with `linux` or
+`windows`). An empty output with the interface plugged in means the system
+does not see it; see Troubleshooting.
+
 ## Troubleshooting
 
 | What you see | Cause |
 |---|---|
 | `Ports: []` / "No Open DMX found" | The interface is not plugged in, or not seen by the system. |
 | "... is in use by another program" | QLC+, DMXDesktop or another DMX program has the interface open. Only one program can use it at a time. |
-| "helper not found at ..." | No helper has been built for this platform; see "Building the helper" in the documentation. |
+| "helper not found at ..." | No helper has been built for this platform; see "Compiling the helper" above. |
 | Connected, but the fixture does not react | Check the fixture's DMX address and mode, then the cable. If those are right, please report it: output on a real fixture is not yet confirmed. |
 
 ## Layout
