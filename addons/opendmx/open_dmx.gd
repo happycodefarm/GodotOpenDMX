@@ -1,6 +1,6 @@
 class_name OpenDMX
 extends Node
-## Drives an Enttec Open DMX USB interface (one DMX512 universe).
+## Drives an Enttec Open DMX USB or DMX USB Pro interface (one DMX512 universe).
 ##
 ## Godot has no serial port API and the Open DMX needs the host to generate
 ## the DMX stream continuously, so this node spawns a small helper program
@@ -18,6 +18,12 @@ extends Node
 ## Emitted when the helper stops by itself (interface unplugged, error...).
 signal disconnected
 
+enum Interface {
+	AUTO, ## Open DMX or DMX USB Pro, guessed from the port name.
+	OPEN_DMX, ## Enttec Open DMX USB (FT232R).
+	DMX_USB_PRO, ## Enttec DMX USB Pro.
+}
+
 const CHANNEL_COUNT := 512
 const HELPER_NAME := "opendmx_helper"
 
@@ -25,6 +31,9 @@ const HELPER_NAME := "opendmx_helper"
 @export var auto_open := false
 ## Serial port to use, as returned by [method list_ports]; empty = first found.
 @export var port := ""
+## Kind of interface. On Linux and Windows the port name does not reveal a
+## DMX USB Pro, so choose [constant DMX_USB_PRO] there.
+@export var interface := Interface.AUTO
 ## Keep the last values on the fixtures when closing instead of a blackout.
 @export var hold_on_close := false
 
@@ -92,6 +101,10 @@ func open(port_path := "") -> bool:
 	var args := PackedStringArray()
 	if hold_on_close:
 		args.append("--hold")
+	if interface == Interface.OPEN_DMX:
+		args.append("--open")
+	elif interface == Interface.DMX_USB_PRO:
+		args.append("--pro")
 	if port != "":
 		args.append(port)
 

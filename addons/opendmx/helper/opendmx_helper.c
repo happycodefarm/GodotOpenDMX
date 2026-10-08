@@ -8,7 +8,17 @@
 //
 // Usage:
 //   opendmx_helper --list            list candidate serial ports
-//   opendmx_helper [--hold] [port]   run; first candidate port if none given
+//   opendmx_helper [--hold] [--pro|--open] [port]
+//                                    run; first candidate port if none given
+//
+// Two kinds of interface are supported:
+//   - Open DMX (FT232R, no microcontroller): the helper generates the whole
+//     DMX signal itself (--open);
+//   - DMX USB Pro (FT245R + microcontroller): the helper only sends framed
+//     "Output Only Send DMX" messages and the interface does the timing (--pro).
+// Without either flag the kind is guessed from the port name: the Pro's USB
+// serial number starts with "EN" (usb:EN..., /dev/cu.usbserial-EN...). On
+// Linux (ttyUSB*) and Windows (COMx) the name says nothing: pass --pro.
 //
 // stdin  : raw 512-byte blocks, one per DMX universe update
 // stdout : "READY <port>" once the port is open
@@ -52,6 +62,15 @@
 // Time for 513 slots of 11 bits at 250 kbaud, plus margin for the bytes still
 // sitting in the FTDI chip's transmit buffer after the drain call returns.
 #define FRAME_US (513 * 44 + 3000)
+
+// DMX USB Pro: message framing and refresh period (~33 Hz, below the ~40 Hz
+// the interface can output)
+#define PRO_START 0x7E
+#define PRO_END 0xE7
+#define PRO_LABEL_SEND_DMX 6
+#define PRO_HEADER 4
+#define PRO_MESSAGE_LEN (PRO_HEADER + DMX_CHANNELS + 1 + 1)
+#define PRO_FRAME_US 30000
 
 #define MAX_PORTS 32
 #define PORT_NAME_LEN 256
@@ -485,7 +504,7 @@ static int usb_open(const char *path) {
     return -1;
   }
 
-  // RTS low enables the Open DMX's RS-485 driver
+  // RTS low enables the Open DMX's RS-485 driver (the Pro ignores it)
   if (usb_control(SIO_RESET, 0) < 0 || usb_control(SIO_SET_FLOW_CTRL, 0) < 0 ||
       usb_control(SIO_SET_BAUDRATE, FTDI_DIVISOR) < 0 ||
       usb_control(SIO_SET_DATA, FTDI_LINE_8N2) < 0 ||
@@ -582,8 +601,31 @@ static void on_signal(int sig) {
   running = 0;
 }
 
+static int is_pro = 0;
+
+// DMX USB Pro: wraps the packet (start code + 512 slots) in a message. The
+// interface produces the break and timings itself.
+static int send_frame_pro(const uint8_t *packet) {
+  uint8_t msg[PRO_MESSAGE_LEN];
+  uint16_t len = DMX_CHANNELS + 1;
+  msg[0] = PRO_START;
+  msg[1] = PRO_LABEL_SEND_DMX;
+  msg[2] = len & 0xFF;
+  msg[3] = len >> 8;
+  memcpy(msg + PRO_HEADER, packet, len);
+  msg[PRO_HEADER + len] = PRO_END;
+
+  uint64_t start = now_us();
+  if (io_write(msg, sizeof(msg)) < 0) return -1;
+  io_drain();
+  uint64_t elapsed = now_us() - start;
+  if (elapsed < PRO_FRAME_US) sleep_us(PRO_FRAME_US - elapsed);
+  return 0;
+}
+
 // Sends one complete DMX packet. Returns 0 on success, -1 if the port is gone.
 static int send_frame(const uint8_t *packet) {
+  if (is_pro) return send_frame_pro(packet);
   if (io_break(1) < 0) return -1;
   sleep_us(BREAK_US);
   if (io_break(0) < 0) return -1;
@@ -603,6 +645,7 @@ int main(int argc, char **argv) {
   static char ports[MAX_PORTS][PORT_NAME_LEN];
   const char *path = NULL;
   int hold = 0;
+  int kind = -1;  // -1 = guess from the port name, 0 = Open DMX, 1 = Pro
   for (int i = 1; i < argc; i++) {
     if (strcmp(argv[i], "--list") == 0) {
       int count = io_find_ports(ports, MAX_PORTS);
@@ -610,22 +653,27 @@ int main(int argc, char **argv) {
       return 0;
     }
     if (strcmp(argv[i], "--hold") == 0) hold = 1;
+    else if (strcmp(argv[i], "--pro") == 0) kind = 1;
+    else if (strcmp(argv[i], "--open") == 0) kind = 0;
     else path = argv[i];
   }
   if (!path) {
     if (io_find_ports(ports, MAX_PORTS) == 0) {
-      fprintf(stderr, "ERROR no Open DMX serial port found\n");
+      fprintf(stderr, "ERROR no Open DMX / DMX USB Pro serial port found\n");
       return 1;
     }
     path = ports[0];
   }
 
+  is_pro = kind >= 0 ? kind
+                     : (strstr(path, "usbserial-EN") != NULL ||
+                        strncmp(path, "usb:EN", 6) == 0);
   if (io_open(path) < 0) return 1;
 
   signal(SIGINT, on_signal);
   signal(SIGTERM, on_signal);
 
-  printf("READY %s\n", path);
+  printf("READY %s%s\n", path, is_pro ? " (DMX USB Pro)" : "");
   fflush(stdout);
 
   // packet[0] is the DMX start code (0), packet[1..512] the channel values

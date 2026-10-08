@@ -213,14 +213,12 @@ x86_64-w64-mingw32-gcc -O2 -o ../bin/windows/opendmx_helper.exe opendmx_helper.c
 macOS has a built-in FTDI serial driver, but **FTDI's D2XXHelper**
 (`/Library/Extensions/FTDIKext.kext`), which several DMX programs ask you to
 install, deliberately stops FTDI chips from appearing as serial ports. On
-such a Mac only USB mode works, which is why the shipped macOS helper is
-built with libusb.
+such a Mac only USB mode works, which is why the macOS build command links
+libusb.
 
 On a Mac without D2XXHelper, Apple's driver claims the interface and a
 `/dev/cu.usbserial-*` port appears. Use that port there; USB mode has not
 been tried in that situation and may be refused.
-
-The shipped binary is Intel (x86_64) only.
 
 ### Linux
 
@@ -242,10 +240,19 @@ registry; if it finds nothing, pass the port by name: `dmx.open("COM3")`.
 
 ## Limits
 
-- Output only: the Open DMX cannot receive DMX.
+- Output only: neither interface is used to receive DMX.
 - One universe per `OpenDMX` node, one node per interface.
 - No RDM.
-- Timing depends on the operating system's scheduler. That is inherent to
-  the Open DMX; an Enttec DMX USB Pro has its own microcontroller and does
-  not have this limit, but it uses a different protocol that this addon does
-  not speak.
+- With the Open DMX, timing depends on the operating system's scheduler.
+  The DMX USB Pro has its own microcontroller and does not have this limit.
+
+## DMX USB Pro
+
+The helper also speaks the Enttec DMX USB Pro protocol ("Output Only Send
+DMX" messages, label 6); the interface generates the DMX timing itself.
+The `interface` property of `OpenDMX` selects the kind: `AUTO` (default),
+`OPEN_DMX` or `DMX_USB_PRO`. In `AUTO` mode a Pro is recognised by its USB
+serial number starting with `EN` (`usb:EN...` or `/dev/cu.usbserial-EN...`).
+On Linux (`/dev/ttyUSB*`) and Windows (`COMx`) the name reveals nothing, so
+set `interface = OpenDMX.Interface.DMX_USB_PRO`. The helper takes `--pro` or
+`--open` for the same purpose. Not tested on hardware yet.

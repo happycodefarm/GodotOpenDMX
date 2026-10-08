@@ -31,7 +31,11 @@ $RECYCLE.BIN/
 .directory
 .Trash-*
 
-# Helper build leftovers (the binaries in addons/opendmx/bin are kept)
+# Helper binaries: built locally, not kept in the repository
+/addons/opendmx/bin/*/*
+!/addons/opendmx/bin/*/.gitkeep
+
+# Helper build leftovers
 *.o
 *.obj
 *.pdb

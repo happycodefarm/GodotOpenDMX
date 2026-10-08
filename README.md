@@ -1,7 +1,7 @@
 # GodotOpenDMX
 
 A Godot 4 addon that drives an **Enttec Open DMX USB** interface (or any
-FT232R-based clone) from GDScript: one DMX512 universe, 512 channels.
+FT232R-based clone) or an **Enttec DMX USB Pro** from GDScript: one DMX512 universe, 512 channels.
 
 ```gdscript
 var dmx := OpenDMX.new()
@@ -16,10 +16,13 @@ Full API and internals: [addons/opendmx/DOCUMENTATION.md](addons/opendmx/DOCUMEN
 
 | Platform | State |
 |---|---|
-| macOS (Intel) | Working, confirmed on a fixture. The binary is shipped. |
+| macOS (Intel) | Working, confirmed on a fixture. |
 | macOS (Apple Silicon) | Needs its own build of the helper. |
 | Linux | Written, never compiled. |
-| Windows | Compiled and working. The binary is not shipped: build it on the Windows machine. |
+
+No helper binary is included in the repository: compile it once for your
+platform, see [Compiling the helper](#compiling-the-helper).
+| Windows | Compiled and working. |
 
 ## How it works
 
@@ -57,14 +60,14 @@ game executable (see the documentation).
 ## Requirements
 
 - Godot 4.6. Earlier 4.x versions are untested.
-- **macOS:** nothing to install; the helper talks to the interface over USB.
+- **macOS:** libusb, only to compile the helper; it talks to the interface over USB.
 - **Linux:** permission on `/dev/ttyUSB*` (usually the `dialout` group).
 - **Windows:** the FTDI VCP driver, so the interface shows up as a COM port.
 
 ## Compiling the helper
 
-The helper is one C file, `addons/opendmx/helper/opendmx_helper.c`. Only the
-macOS (Intel) binary is shipped; build the others on the target machine. Run
+The helper is one C file, `addons/opendmx/helper/opendmx_helper.c`. No
+binary is included in the repository; build it on the target machine. Run
 every command from `addons/opendmx/helper`.
 
 ### macOS
@@ -157,8 +160,8 @@ demo/                  four-fader demo
 
 [WTFPL version 2](LICENSE): do what you want with it.
 
-One exception to keep in mind: the shipped macOS helper binary has
+One thing to keep in mind: a helper built with USB access has
 [libusb](https://libusb.info) linked into it, and libusb is under the
-LGPL 2.1. If you redistribute that binary, the LGPL applies to the libusb
-part. The helper's source is included here, so anyone can rebuild it against
-their own libusb, which is what the LGPL asks for.
+LGPL 2.1. If you distribute such a binary (with an exported game, for
+example), the LGPL applies to the libusb part. Pointing to this source, so
+anyone can rebuild the helper against their own libusb, is what it asks for.
