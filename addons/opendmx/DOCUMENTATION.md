@@ -236,7 +236,7 @@ needs a udev rule (or root) granting access to the USB device.
 
 ### Windows
 
-Not compiled or tested yet. Install the FTDI VCP driver so the interface
+Compiled and working. Install the FTDI VCP driver so the interface
 appears as a COM port. Auto-detection reads the list of FTDI ports from the
 registry; if it finds nothing, pass the port by name: `dmx.open("COM3")`.
 

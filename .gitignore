@@ -1,2 +1,39 @@
-/.godot
-/.vscode
+# Godot
+/.godot/
+/android/
+*.translation
+.mono/
+data_*/
+mono_crash.*.json
+
+# Editors
+/.vscode/
+.idea/
+*.swp
+*~
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+.Spotlight-V100
+.Trashes
+.fseventsd
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# Linux
+.directory
+.Trash-*
+
+# Helper build leftovers (the binaries in addons/opendmx/bin are kept)
+*.o
+*.obj
+*.pdb
+*.ilk
+*.dSYM/

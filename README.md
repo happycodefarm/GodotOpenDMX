@@ -16,10 +16,10 @@ Full API and internals: [addons/opendmx/DOCUMENTATION.md](addons/opendmx/DOCUMEN
 
 | Platform | State |
 |---|---|
-| macOS (Intel) | Built and tested up to the USB interface: the port opens and frames are sent without error. Not yet confirmed on a fixture. |
+| macOS (Intel) | Working, confirmed on a fixture. The binary is shipped. |
 | macOS (Apple Silicon) | Needs its own build of the helper. |
 | Linux | Written, never compiled. |
-| Windows | Written, never compiled. |
+| Windows | Compiled and working. The binary is not shipped: build it on the Windows machine. |
 
 ## How it works
 
@@ -118,8 +118,8 @@ Or with Visual Studio, in a "x64 Native Tools Command Prompt":
 cl /O2 /Fe:..\bin\windows\opendmx_helper.exe opendmx_helper.c
 ```
 
-The Linux and Windows builds have never been compiled, so expect to fix a
-compile error or two the first time.
+The Linux build has never been compiled, so expect to fix a compile error or
+two the first time.
 
 ### Check the result
 
@@ -138,7 +138,7 @@ does not see it; see Troubleshooting.
 | `Ports: []` / "No Open DMX found" | The interface is not plugged in, or not seen by the system. |
 | "... is in use by another program" | QLC+, DMXDesktop or another DMX program has the interface open. Only one program can use it at a time. |
 | "helper not found at ..." | No helper has been built for this platform; see "Compiling the helper" above. |
-| Connected, but the fixture does not react | Check the fixture's DMX address and mode, then the cable. If those are right, please report it: output on a real fixture is not yet confirmed. |
+| Connected, but the fixture does not react | Check the fixture's DMX address and mode, then the cable. |
 
 ## Layout
 
@@ -147,7 +147,18 @@ addons/opendmx/
   open_dmx.gd          the OpenDMX node
   plugin.cfg, plugin.gd
   DOCUMENTATION.md
+  LICENSE.txt
   bin/<platform>/      helper binaries
   helper/              helper source (C)
 demo/                  four-fader demo
 ```
+
+## License
+
+[WTFPL version 2](LICENSE): do what you want with it.
+
+One exception to keep in mind: the shipped macOS helper binary has
+[libusb](https://libusb.info) linked into it, and libusb is under the
+LGPL 2.1. If you redistribute that binary, the LGPL applies to the libusb
+part. The helper's source is included here, so anyone can rebuild it against
+their own libusb, which is what the LGPL asks for.
